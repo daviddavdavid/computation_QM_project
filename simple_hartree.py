@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 
 ## CONSTANTS
 a_0 = 1.0
-E_initial_low = -10
-E_initial_high = 0
+E_initial = 0
 Z = 2
-epsilon = 1e-6
+epsilon_field = 1e-6
+epsilon_shooting_method = 1e-9
 
 def relative_potential(x_i, x_j, dx):
     return 1 / (np.abs(x_i - x_j) + dx)
@@ -36,13 +36,13 @@ def calculate_V_ij(psi_j, x_grid, dx):
 
 def calculate_psi_i(V_ij, x_array, dx, E):
     psi = np.zeros(len(x_array))
-    psi[0] = 1
-    psi[1] = 0.99 # initial values, they dont actually matter because we normalize. We put the right BC already to make it quicker
+    psi[0] = 1.0
+    psi[1] = 1.0 # initial values, they dont actually matter because we normalize. We put the right BC already to make it quicker
     
     for i in range(1, len(psi)-1):
         psi[i+1] = (
             2 * psi[i]
-            + 2 * (V_ij[i] - Z/(x_array[i] + dx) + E) * psi[i] * (dx**2)
+            + 2 * (V_ij[i] - Z/(x_array[i] + dx) - E) * psi[i] * (dx**2)
             - (1 - dx/(x_array[i] + dx)) * psi[i-1]
         ) / (1 + dx/(x_array[i] + dx))
         
@@ -52,41 +52,41 @@ def calculate_psi_i(V_ij, x_array, dx, E):
 def wave_function_cycle(psi_j, x_grid, dx):
     V_ij = calculate_V_ij(psi_j, x_grid, dx)
     converged = False
-    E_low = E_initial_low
-    E_high = E_initial_high
-    too_low_reached = False
-    too_high_reached = False
+    reached_zero = False
     psi_i = np.copy(psi_j) # just to have the same shape, we will overwrite it in the loop anyway
+    print("hi")
     cycles = 0
+    delta_e = 1
+    E_current = E_initial
+    E_found = E_current
+    previous_psi_last = psi_i[-1]
+
     while converged == False:
+        E_current = E_current - delta_e
         cycles += 1
-        if (np.abs(E_low - E_high) < epsilon):
+        if (np.abs(delta_e) < epsilon_shooting_method):
             converged = True
+            E_found = E_current
             break
 
-        E_mid = 0.5 * (E_low + E_high)
-        psi_i = calculate_psi_i(V_ij, x_grid, dx, E_mid)
+        psi_i = calculate_psi_i(V_ij, x_grid, dx, E_current)
 
-        boundary_condition = 0.0014 # what the paper uses
-        if psi_i[-1] > boundary_condition: 
-            E_high = E_mid
-            too_high_reached = True
-        elif psi_i[-1] < boundary_condition:
-            E_low = E_mid
-            too_low_reached = True
-        elif psi_i[-1] == boundary_condition:
-            break # well we found a perfectly converged value already by chance, yay!
-
-    E_found = 0.5 * (E_low + E_high)
-    if too_low_reached == False or too_high_reached == False:
+        if psi_i[-1] * previous_psi_last < 0: # if the last value of the wave function changes sign, we know that we have passed the correct energy
+            delta_e = delta_e - delta_e / 2
+            print(delta_e)
+            reached_zero = True
+        previous_psi_last = psi_i[-1]
+        print(E_current)
+    if reached_zero == False:
         print("Warning: boundary condition not reached in wave function cycle")
     return psi_i, V_ij, E_found
     
 
 def main():
+    print("Starting the self-consistent Hartree calculation for the helium atom in 1D...")
     x_min = 0
-    x_max = 4 * a_0
-    dx = 0.01
+    x_max = 15 * a_0
+    dx = 0.002
     N = int((x_max - x_min) / dx) + 1
     x_grid = np.linspace(x_min, x_max, N)
     dx = x_grid[1] - x_grid[0]
@@ -97,12 +97,14 @@ def main():
     cycle = 0
 
     while self_consistent <= 3:
+        print("hi")
         psi_i_found, V_ij, E_found = wave_function_cycle(previous_psi_j, x_grid, dx)
+       
         psi_average = (previous_psi_j + psi_i_found) / 2
         psi_i_again, V_ij, E_again = wave_function_cycle(psi_average, x_grid, dx)
         previous_psi_j = psi_i_found
         cycle += 1
-        print(cycle)
+        print(f"Cycle {cycle}: Found energy = {E_again}, Energy difference = {np.abs(E_found - E_again)}")
         # plt.plot(x_grid, psi_i_again)
         # plt.xlabel("x value")
         # plt.ylabel("psi(x)")
@@ -110,7 +112,7 @@ def main():
         # plt.show()
 
         energy_difference = np.abs(E_found - E_again)
-        if energy_difference <= epsilon:
+        if energy_difference <= epsilon_field:
             self_consistent += 1
         else:
             self_consistent = 0
@@ -124,7 +126,7 @@ def main():
 
             E_true = E_again
             print(f"The found energy of the helium electron ground state is {E_true}")
-            E_helium = 2 * np.abs(E_true) - np.trapezoid(electron_repulsion, dx=dx)
+            E_helium = 2 * E_true - np.trapezoid(electron_repulsion, dx=dx)
             print(f"The found energy of the helium ground state is {E_helium}")
             
             plt.plot(x_grid, psi_i_again)
