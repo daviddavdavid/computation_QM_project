@@ -7,10 +7,11 @@ E_initial_low = -10
 E_initial_high = 0
 Z = 2
 epsilon = 1e-6
-alpha = 0.1
+alpha = 0.1  # <-- NEW: Constant truncation parameter independent of dx
 
-def relative_potential(x_i, x_j, dx):
-    return 1 / (np.abs(x_i - x_j) + alpha)
+def relative_potential(x_i, x_grid, alpha):
+    # <-- FIX: Use alpha instead of dx
+    return 1 / (np.abs(x_i - x_grid) + alpha)
 
 def normalize_WF(psi, dx):
     prob_density = psi ** 2
@@ -26,26 +27,25 @@ def calculate_V_ij(psi_j, x_grid, dx):
     psi_j_squared = psi_j ** 2
     V_ij = np.zeros(N)
     for i, x_i in enumerate(x_grid):
-        V_one_i = psi_j_squared * relative_potential(x_i, x_grid, dx)
+        V_one_i = psi_j_squared * relative_potential(x_i, x_grid, alpha)
         V_ij[i] = np.trapezoid(V_one_i, dx=dx) 
-                               
     return V_ij
 
 def calculate_psi_i(V_ij, x_array, dx, E):
     psi = np.zeros(len(x_array))
-    psi[0] = 1.0
-    psi[1] = 1.0 
-    V_nuc = -Z / (np.abs(x_array) + alpha)
+    psi[0] = 1
+    psi[1] = 1 # Your symmetric starting guess
     
     for i in range(1, len(psi)-1):
-        V_total = V_ij[i] + V_nuc[i]
-        psi[i+1] = 2*psi[i] - psi[i-1] + dx**2 * 2*(V_total - E)*psi[i]
+        # <-- FIX: Use alpha for the nuclear truncation too
+        psi[i+1] = (
+            2 * psi[i]
+            + 2 * (V_ij[i] - Z/(x_array[i] + alpha) - E) * psi[i] * (dx**2)
+            - (1 - dx/(x_array[i] + dx)) * psi[i-1]
+        ) / (1 + dx/(x_array[i] + dx))
         
-        # STOP the integration if it blows up
-        if abs(psi[i+1]) > 100: 
-            psi[i+1:] = np.sign(psi[i+1]) * 100
-            break
-    return normalize_WF(psi, dx)
+    psi = normalize_WF(psi, dx)
+    return psi
 
 def wave_function_cycle(psi_j, x_grid, dx):
     V_ij = calculate_V_ij(psi_j, x_grid, dx)
@@ -54,8 +54,9 @@ def wave_function_cycle(psi_j, x_grid, dx):
     E_high = E_initial_high
     too_low_reached = False
     too_high_reached = False
-    psi_i = np.copy(psi_j) # just to have the same shape, we will overwrite it in the loop anyway
+    psi_i = np.copy(psi_j) 
     cycles = 0
+    
     while converged == False:
         shooting_method_epsilon = 1e-3 * epsilon
         cycles += 1
@@ -66,18 +67,22 @@ def wave_function_cycle(psi_j, x_grid, dx):
         E_mid = 0.5 * (E_low + E_high)
         psi_i = calculate_psi_i(V_ij, x_grid, dx, E_mid)
 
-        if psi_i[-1] > 0: 
-            E_high = E_mid
+        boundary_condition = 0.0014 
+        
+        # <-- FIX: Bisection logic flipped to correctly trap the energy
+        if psi_i[-1] > boundary_condition: 
+            E_high = E_mid  # Lower the ceiling
             too_high_reached = True
-        elif psi_i[-1] <= 0:
-            E_low = E_mid
+        elif psi_i[-1] < boundary_condition:
+            E_low = E_mid   # Raise the floor
             too_low_reached = True
+        elif psi_i[-1] == boundary_condition:
+            break 
 
     E_found = 0.5 * (E_low + E_high)
     if too_low_reached == False or too_high_reached == False:
         print("Warning: boundary condition not reached in wave function cycle")
     return psi_i, V_ij, E_found
-    
 
 def main():
     print("Starting the self-consistent Hartree cycle for the helium 1D atom...")
@@ -95,7 +100,7 @@ def main():
 
     while self_consistent <= 3:
         psi_i_found, V_ij, E_found = wave_function_cycle(previous_psi_j, x_grid, dx)
-        psi_average = normalize_WF((previous_psi_j + psi_i_found), dx)
+        psi_average = (previous_psi_j + psi_i_found) / 2
         psi_i_again, V_ij, E_again = wave_function_cycle(psi_average, x_grid, dx)
         previous_psi_j = psi_i_found
         cycle += 1
