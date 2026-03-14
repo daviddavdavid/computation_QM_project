@@ -11,6 +11,7 @@ e = 1
 
 def normalize_without_infinity(u, dx):
     minimum_index = np.argmin(np.abs(u[1:]))
+    # removes the part of the wave function that diverges to infinity, which would mess up the normalization
     for i in range(minimum_index, len(u)):
         u[i] = 0
     
@@ -31,15 +32,10 @@ def calculate_V_cl(u, x_grid, dx):
     Q = 0
     for i in range(1, len(x_grid)):
         Q += u[i]**2 * dx
-        V[i] = V[i-1] - e * Q * (dx/x_grid[i])/x_grid[i]
+        V[i] = V[i-1] - e * Q * (dx/x_grid[i])/x_grid[i] # collecting the contribution of the charge inside the sphere of radius x_grid[i]
     
-    # This works correctly on NumPy arrays (adds to every element)
     V += e**2/x_grid[-1] - V[-1] 
     return V
-
-def calculate_u_i(V_cl, x_array, dx, E):
-    u = np.zeros(len(x_array))
-    return normalize_WF(u, dx)
 
 def calculate_u(u, u_1, V_cl, x_grid, dx, E_accent):
     u[0] = 0.0
@@ -63,7 +59,7 @@ def wave_function_cycle(u_1, x_grid, dx, V_cl, E_guess):
         u = calculate_u(u, u_1, V_cl, x_grid, dx, E)
         t_1 = u[-1]
         
-        # If the sign flipped, we passed the eigenvalue! 
+        # If the sign flipped, we passed the eigenvalue
         # Reverse direction and sharpen the search.
         if t_0 * t_1 < 0:
             E -= dE        # Go back to the previous 'good' energy
@@ -74,6 +70,7 @@ def wave_function_cycle(u_1, x_grid, dx, V_cl, E_guess):
     return normalize_without_infinity(u, dx), E
     
 def calculate_kinetic_and_repulsion_energy(u, x_grid, dx):
+    # We calculate the kinetic and repulsion energy using the formulas from the paper, which are derived from the Hartree method.
     b_integrand = u * u / x_grid
     b = -2 * e**2 * np.trapezoid(b_integrand, dx=dx)
 
@@ -116,7 +113,7 @@ def main():
             A, B = calculate_kinetic_and_repulsion_energy(u, x_grid, dx)
             E_actual = E_current + A + B
             E_actual = 27.211 * E_actual
-            print(f"The final result is the energy {E_actual} eV")
+            print(f"The final result is the energy {E_actual:.6f} eV")
 
             plt.plot(x_grid, (u/x_grid)) # we plot u(r)/r to get the actual wave function
             plt.xlabel("r")
