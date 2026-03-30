@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import click
 
 ## CONSTANTS
 E_initial_low = -10
@@ -84,10 +85,15 @@ def calculate_kinetic_and_repulsion_energy(u, x_grid, dx):
     return a, b
     
 
-def main():
+@click.command()
+@click.option('--dx', default=0.001, help='The step size for the radial grid, standard value is from the paper.')
+@click.option('--i_max', default=15000, help='The number of steps for the radial grid, standard value is from the paper.')
+def main(dx, i_max):
+    wave_function_calculator(dx, i_max)
+
+def wave_function_calculator(dx, i_max):
+    E_actual = 0    
     print("Starting the self-consistent Hartree cycle for the helium atom...")
-    dx = 0.001
-    i_max = 15000
     x_min = dx # too prevent 0 divison errors
     x_max = i_max * dx
     x_grid = np.arange(x_min, x_max, dx)
@@ -117,12 +123,31 @@ def main():
 
             plt.plot(x_grid, (u/x_grid)) # we plot u(r)/r to get the actual wave function
             plt.xlabel("r")
-            plt.ylabel("psi")
+            plt.ylabel("R_1s(r)")
             plt.title("The plot of the WF of the ground state")
+            plt.savefig("helium_atom_ground_state.png")
             plt.show()
 
         E_previous = E_current
         u_1 = u[1]
-        
+    return E_actual
+
+def convergence_test():
+    dx_values = [0.01, 0.005, 0.001, 0.0005]
+    i_max_value = 15000 # we keep this constant
+    energies_found = []
+
+    for dx in dx_values:
+        print(f"Testing with dx = {dx}")
+        energy = wave_function_calculator(dx, i_max_value)
+        energies_found.append(energy)
+
+    plt.plot(energies_found, marker='o')
+    plt.xlabel("Test Case")
+    plt.ylabel("Found Energy")
+    plt.title("Convergence Test")
+    plt.savefig("convergence_test_gs_1s.png")
+    plt.show()
+
 if __name__ == "__main__":
-    main()
+    convergence_test()
