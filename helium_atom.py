@@ -256,19 +256,19 @@ def wave_function_calculator(dx, i_max):
             print(f"The final result is the energy of the 1s {singlet_or_triplet} state : {E_actual_1s:.6f} eV")
             print(f"The final result is the energy of the 1nl {singlet_or_triplet} state: {E_actual_nl:.6f} eV")
 
-            plt.plot(x_grid, (u_1s /x_grid), label="phi") # we plot u(r)/r to get the actual wave function
+            plt.plot(x_grid, (u_1s /x_grid), label="psi") # we plot u(r)/r to get the actual wave function
             plt.plot(x_grid, u_1s, label="u") # we plot u(r)/r to get the actual wave function
             plt.xlabel("r")
-            plt.ylabel("psi")
+            plt.ylabel("Amplitude")
             plt.legend()
             plt.title("The plot of the 1s WF of the ground state")
             plt.savefig("helium_atom_1s_ground_state.png")
             plt.show()
 
-            plt.plot(x_grid, (u_nl /x_grid), label="phi") # we plot u(r)/r to get the actual wave function
+            plt.plot(x_grid, (u_nl /x_grid), label="psi") # we plot u(r)/r to get the actual wave function
             plt.plot(x_grid, u_nl, label="u") # we plot u(r)/r to get the actual wave function
             plt.xlabel("r")
-            plt.ylabel("psi")
+            plt.ylabel("Amplitude")
             plt.legend()
             plt.title(f"The plot of the {n_second_WF}s WF of the {singlet_or_triplet} state")
             plt.savefig(f"helium_atom_{n_second_WF}s_{singlet_or_triplet}.png")

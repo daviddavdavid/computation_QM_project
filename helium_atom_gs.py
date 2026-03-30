@@ -121,9 +121,11 @@ def wave_function_calculator(dx, i_max):
             E_actual = 27.211 * E_actual
             print(f"The final result is the energy {E_actual:.6f} eV")
 
-            plt.plot(x_grid, (u/x_grid)) # we plot u(r)/r to get the actual wave function
+            plt.plot(x_grid, (u/x_grid), label="psi") # we plot u(r)/r to get the actual wave function
+            plt.plot(x_grid, u, label="u")
             plt.xlabel("r")
-            plt.ylabel("R_1s(r)")
+            plt.legend()
+            plt.ylabel("Amplitude")
             plt.title("The plot of the WF of the ground state")
             plt.savefig("helium_atom_ground_state.png")
             plt.show()
