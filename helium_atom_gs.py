@@ -150,4 +150,4 @@ def convergence_test():
     plt.show()
 
 if __name__ == "__main__":
-    convergence_test()
+    main()
