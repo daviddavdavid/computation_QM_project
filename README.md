@@ -15,11 +15,11 @@ The code supports general electronic states, but currently assumes orthogonality
 ### Files
 
 * `helium_atom_gs.py`
-  Runs the Hartree(-Fock) algorithm for the helium ground state (1s²). This implementation is stable and produces correct results.
+  Runs the Hartree algorithm for the helium ground state (1s²). This implementation is stable and produces correct results.
 
 * `helium_atom.py`
   Runs the Hartree–Fock algorithm for the 1s2s triplet state. While the wave function form is captured, the computed energy is inaccurate due to missing orthogonality constraints.
 
 ### Notes
 
-Future improvements should include explicit orthogonalization of orbitals (e.g., via Gram–Schmidt or similar methods) to ensure accurate energy calculations for excited states.
+Future improvements should include explicit orthogonalization of orbitals to ensure accurate energy calculations for excited states.
