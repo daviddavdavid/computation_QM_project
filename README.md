@@ -18,7 +18,7 @@ The code supports general electronic states, but currently assumes orthogonality
   Runs the Hartree algorithm for the helium ground state (1s²). This implementation is stable and produces correct results.
 
 * `helium_atom.py`
-  Runs the Hartree–Fock algorithm for the 1s2s triplet state. While the wave function form is captured, the computed energy is inaccurate due to missing orthogonality constraints.
+  Runs the Hartree–Fock algorithm for the 1s2s triplet state. While the wave function form is captured, the computed energy is inaccurate.
 
 ### Notes
 
